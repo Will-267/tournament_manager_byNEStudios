@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+// import { useMutation } from "convex/react";
+// import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 
 interface CreateTournamentModalProps {
@@ -22,30 +22,26 @@ export function CreateTournamentModal({ onClose }: CreateTournamentModalProps) {
     isVideoStreamEnabled: true,
   });
 
-  const createTournament = useMutation(api.tournaments.createTournament);
+  // const createTournament = useMutation(api.tournaments.createTournament);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
       const startDate = new Date(formData.startDate).getTime();
-      
-      await createTournament({
-        name: formData.name,
-        description: formData.description,
-        gameType: formData.gameType,
-        maxParticipants: formData.maxParticipants,
+      const payload = {
+        ...formData,
         startDate,
-        tournamentType: formData.tournamentType,
         participantFee: formData.tournamentType !== "free" ? formData.participantFee : undefined,
         spectatorFee: formData.tournamentType === "exclusive" ? formData.spectatorFee : undefined,
-        rules: formData.rules || undefined,
-        prizePool: formData.prizePool || undefined,
-        isVideoStreamEnabled: formData.isVideoStreamEnabled,
+      };
+      const res = await fetch("/api/tournaments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-
+      if (!res.ok) throw new Error("Failed to create tournament");
       toast.success("Tournament created successfully!");
       onClose();
     } catch (error) {
