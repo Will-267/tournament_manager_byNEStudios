@@ -1,19 +1,20 @@
+
 import { useState, useEffect, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
 
 interface ChatPanelProps {
-  tournamentId: Id<"tournaments">;
+  tournamentId: string;
 }
 
 export function ChatPanel({ tournamentId }: ChatPanelProps) {
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  const messages = useQuery(api.chat.getMessages, { tournamentId });
-  const sendMessage = useMutation(api.chat.sendMessage);
-  const loggedInUser = useQuery(api.auth.loggedInUser);
+
+  useEffect(() => {
+    fetch(`/api/tournaments/${tournamentId}/chat`)
+      .then(res => res.json())
+      .then(setMessages);
+  }, [tournamentId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -26,13 +27,20 @@ export function ChatPanel({ tournamentId }: ChatPanelProps) {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-
     try {
-      await sendMessage({
-        tournamentId,
-        message: message.trim(),
+      const userName = localStorage.getItem("userName") || "Demo User";
+      const userEmail = localStorage.getItem("userEmail") || "demo@user.com";
+      const res = await fetch(`/api/tournaments/${tournamentId}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: message.trim(), userName, userEmail }),
       });
+      if (!res.ok) throw new Error("Failed to send message");
       setMessage("");
+      // Refetch messages
+      fetch(`/api/tournaments/${tournamentId}/chat`)
+        .then(res => res.json())
+        .then(setMessages);
     } catch (error) {
       console.error("Failed to send message:", error);
     }
@@ -48,12 +56,12 @@ export function ChatPanel({ tournamentId }: ChatPanelProps) {
   return (
     <div className="flex flex-col h-96">
       <h3 className="text-lg font-semibold mb-4">Tournament Chat</h3>
-      
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto bg-gray-50 rounded-lg p-4 mb-4">
         <div className="space-y-3">
-          {messages?.map((msg) => (
-            <div key={msg._id} className="flex flex-col">
+          {messages.map((msg) => (
+            <div key={msg._id || msg.timestamp} className="flex flex-col">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-medium text-sm text-gray-900">
                   {msg.userName}
@@ -67,7 +75,7 @@ export function ChatPanel({ tournamentId }: ChatPanelProps) {
               </div>
             </div>
           ))}
-          {messages?.length === 0 && (
+          {messages.length === 0 && (
             <div className="text-center text-gray-500 py-8">
               <div className="text-2xl mb-2">💬</div>
               <p>No messages yet. Start the conversation!</p>

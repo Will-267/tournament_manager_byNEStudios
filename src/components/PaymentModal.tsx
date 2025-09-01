@@ -1,11 +1,9 @@
+
 import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 
 interface PaymentModalProps {
-  tournamentId: Id<"tournaments">;
+  tournamentId: string;
   paymentType: "participant_fee" | "spectator_fee";
   amount: number;
   onClose: () => void;
@@ -19,33 +17,23 @@ export function PaymentModal({ tournamentId, paymentType, amount, onClose, onSuc
   const [cvv, setCvv] = useState("");
   const [cardholderName, setCardholderName] = useState("");
 
-  const createPaymentIntent = useMutation(api.payments.createPaymentIntent);
-  const completePayment = useMutation(api.payments.completePayment);
-
   const platformFee = Math.round(amount * 0.1 * 100) / 100;
   const hostAmount = amount - platformFee;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
-
     try {
-      // Create payment intent
-      const paymentIntent = await createPaymentIntent({
-        tournamentId,
-        paymentType,
-        amount,
-      });
-
       // Simulate payment processing (in real app, use Stripe or similar)
       await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Complete payment
-      await completePayment({
-        paymentId: paymentIntent.paymentId,
-        paymentIntentId: paymentIntent.paymentIntentId,
+      // Register user after payment
+      const role = paymentType === "participant_fee" ? "participant" : "spectator";
+      const res = await fetch(`/api/tournaments/${tournamentId}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, paid: true }),
       });
-
+      if (!res.ok) throw new Error("Payment failed");
       toast.success("Payment successful!");
       onSuccess();
       onClose();

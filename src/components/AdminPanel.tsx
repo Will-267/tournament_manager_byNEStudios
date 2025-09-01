@@ -1,21 +1,21 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface AdminPanelProps {
-  tournamentId: Id<"tournaments">;
+  tournamentId: string;
   isOwner: boolean;
 }
 
 export function AdminPanel({ tournamentId, isOwner }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<"users" | "settings" | "danger">("users");
-  
-  const tournament = useQuery(api.tournaments.getTournament, { tournamentId });
-  const kickUser = useMutation(api.admin.kickUserFromTournament);
-  const updateStatus = useMutation(api.admin.updateTournamentStatus);
-  const deleteTournament = useMutation(api.admin.deleteTournament);
+  const [tournament, setTournament] = useState<any>(null);
+
+  useEffect(() => {
+    fetch(`/api/tournaments/${tournamentId}`)
+      .then(res => res.json())
+      .then(setTournament);
+  }, [tournamentId]);
 
   if (!isOwner || !tournament) {
     return (
@@ -25,10 +25,18 @@ export function AdminPanel({ tournamentId, isOwner }: AdminPanelProps) {
     );
   }
 
-  const handleKickUser = async (userId: Id<"users">) => {
+  const handleKickUser = async (userId: string, role: "participant" | "spectator") => {
     try {
-      await kickUser({ tournamentId, targetUserId: userId });
+      const res = await fetch(`/api/tournaments/${tournamentId}/kick`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role }),
+      });
+      if (!res.ok) throw new Error("Failed to kick user");
       toast.success("User kicked from tournament");
+      fetch(`/api/tournaments/${tournamentId}`)
+        .then(res => res.json())
+        .then(setTournament);
     } catch (error: any) {
       toast.error(error.message || "Failed to kick user");
     }
@@ -36,8 +44,16 @@ export function AdminPanel({ tournamentId, isOwner }: AdminPanelProps) {
 
   const handleStatusUpdate = async (status: "upcoming" | "active" | "completed" | "cancelled") => {
     try {
-      await updateStatus({ tournamentId, status });
+      const res = await fetch(`/api/tournaments/${tournamentId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error("Failed to update status");
       toast.success("Tournament status updated");
+      fetch(`/api/tournaments/${tournamentId}`)
+        .then(res => res.json())
+        .then(setTournament);
     } catch (error: any) {
       toast.error(error.message || "Failed to update status");
     }
@@ -47,11 +63,10 @@ export function AdminPanel({ tournamentId, isOwner }: AdminPanelProps) {
     if (!confirm("Are you sure you want to delete this tournament? This action cannot be undone.")) {
       return;
     }
-
     try {
-      await deleteTournament({ tournamentId });
+      const res = await fetch(`/api/tournaments/${tournamentId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete tournament");
       toast.success("Tournament deleted");
-      // Navigate back or refresh
       window.location.reload();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete tournament");
@@ -91,7 +106,7 @@ export function AdminPanel({ tournamentId, isOwner }: AdminPanelProps) {
             <div>
               <h3 className="text-lg font-semibold mb-4">Manage Participants</h3>
               <div className="space-y-2">
-                {tournament.participants.map((participant) => (
+                {tournament.participants.map((participant: any) => (
                   <div key={participant._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <div className="font-medium">{participant.userName}</div>
@@ -107,7 +122,7 @@ export function AdminPanel({ tournamentId, isOwner }: AdminPanelProps) {
                       </span>
                       {participant.status !== "kicked" && (
                         <button
-                          onClick={() => handleKickUser(participant.userId)}
+                          onClick={() => handleKickUser(participant.userId, "participant")}
                           className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors"
                         >
                           Kick
@@ -122,7 +137,7 @@ export function AdminPanel({ tournamentId, isOwner }: AdminPanelProps) {
             <div>
               <h3 className="text-lg font-semibold mb-4">Manage Spectators</h3>
               <div className="space-y-2">
-                {tournament.spectators.map((spectator) => (
+                {tournament.spectators.map((spectator: any) => (
                   <div key={spectator._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <div className="font-medium">{spectator.userName}</div>
@@ -138,7 +153,7 @@ export function AdminPanel({ tournamentId, isOwner }: AdminPanelProps) {
                       </span>
                       {spectator.status !== "kicked" && (
                         <button
-                          onClick={() => handleKickUser(spectator.userId)}
+                          onClick={() => handleKickUser(spectator.userId, "spectator")}
                           className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors"
                         >
                           Kick
@@ -186,7 +201,7 @@ export function AdminPanel({ tournamentId, isOwner }: AdminPanelProps) {
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600">
-                    {tournament.participants.filter(p => p.status === "active").length}
+                    {tournament.participants.filter((p: any) => p.status === "active").length}
                   </div>
                   <div className="text-sm text-gray-600">Active Players</div>
                 </div>

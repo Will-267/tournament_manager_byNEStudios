@@ -1,42 +1,35 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
-import { MatchView } from "./MatchView";
+
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface TournamentMatchesProps {
-  tournamentId: Id<"tournaments">;
+  tournamentId: string;
 }
 
 export function TournamentMatches({ tournamentId }: TournamentMatchesProps) {
-  const [selectedMatch, setSelectedMatch] = useState<Id<"matches"> | null>(null);
-  
-  const matches = useQuery(api.matches.getTournamentMatches, { tournamentId });
-  const tournament = useQuery(api.tournaments.getTournament, { tournamentId });
-  const loggedInUser = useQuery(api.auth.loggedInUser);
-  
-  const createMatch = useMutation(api.matches.createMatch);
-  const startMatch = useMutation(api.matches.startMatch);
+  const [matches, setMatches] = useState<any[]>([]);
+  const [tournament, setTournament] = useState<any>(null);
+  const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
-  if (selectedMatch) {
-    return (
-      <MatchView
-        matchId={selectedMatch}
-        tournamentId={tournamentId}
-        onBack={() => setSelectedMatch(null)}
-      />
-    );
-  }
+  useEffect(() => {
+    fetch(`/api/tournaments/${tournamentId}`)
+      .then(res => res.json())
+      .then(data => {
+        setTournament(data);
+        const userEmail = localStorage.getItem("userEmail") || "demo@user.com";
+        setIsOwner(data.ownerEmail === userEmail);
+      });
+    fetch(`/api/tournaments/${tournamentId}/matches`)
+      .then(res => res.json())
+      .then(setMatches);
+  }, [tournamentId]);
 
-  const isOwner = tournament?.ownerId === loggedInUser?._id;
-  const groupedMatches = matches?.reduce((acc, match) => {
-    if (!acc[match.round]) {
-      acc[match.round] = [];
-    }
+  const groupedMatches = matches.reduce((acc, match) => {
+    if (!acc[match.round]) acc[match.round] = [];
     acc[match.round].push(match);
     return acc;
-  }, {} as Record<number, typeof matches>) || {};
+  }, {} as Record<number, typeof matches>);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -47,10 +40,15 @@ export function TournamentMatches({ tournamentId }: TournamentMatchesProps) {
     }
   };
 
-  const handleStartMatch = async (matchId: Id<"matches">) => {
+  const handleStartMatch = async (matchId: string) => {
     try {
-      await startMatch({ matchId });
+      const res = await fetch(`/api/matches/${matchId}/start`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to start match");
       toast.success("Match started!");
+      // Refetch matches
+      fetch(`/api/tournaments/${tournamentId}/matches`)
+        .then(res => res.json())
+        .then(setMatches);
     } catch (error: any) {
       toast.error(error.message || "Failed to start match");
     }
@@ -58,29 +56,40 @@ export function TournamentMatches({ tournamentId }: TournamentMatchesProps) {
 
   const generateFirstRound = async () => {
     if (!tournament) return;
-    
-    const participants = tournament.participants.filter(p => p.status === "active");
+    const participants = tournament.participants.filter((p: any) => p.status === "active");
     if (participants.length < 2) {
       toast.error("Need at least 2 active participants to generate matches");
       return;
     }
-
     try {
-      // Simple pairing for first round
       for (let i = 0; i < participants.length - 1; i += 2) {
-        await createMatch({
-          tournamentId,
-          round: 1,
-          matchNumber: Math.floor(i / 2) + 1,
-          player1Id: participants[i].userId,
-          player2Id: participants[i + 1].userId,
+        await fetch(`/api/matches`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tournamentId,
+            round: 1,
+            matchNumber: Math.floor(i / 2) + 1,
+            player1Id: participants[i].userId,
+            player2Id: participants[i + 1].userId,
+          }),
         });
       }
       toast.success("First round matches generated!");
+      fetch(`/api/tournaments/${tournamentId}/matches`)
+        .then(res => res.json())
+        .then(setMatches);
     } catch (error: any) {
       toast.error(error.message || "Failed to generate matches");
     }
   };
+
+  if (selectedMatch) {
+    // You may want to implement a REST-based MatchView as well
+    return (
+      <div className="text-center py-8 text-gray-500">Match view not implemented for REST API yet.</div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -112,7 +121,7 @@ export function TournamentMatches({ tournamentId }: TournamentMatchesProps) {
               <div key={round} className="bg-white rounded-lg shadow-sm border p-6">
                 <h4 className="text-lg font-semibold mb-4">Round {round}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {roundMatches.map((match) => (
+                  {roundMatches.map((match: any) => (
                     <div
                       key={match._id}
                       className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
@@ -126,7 +135,7 @@ export function TournamentMatches({ tournamentId }: TournamentMatchesProps) {
                           {match.status}
                         </span>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
                           <span className="font-medium">{match.player1Name}</span>
@@ -134,9 +143,9 @@ export function TournamentMatches({ tournamentId }: TournamentMatchesProps) {
                             <span className="text-lg font-bold">{match.score.player1Score}</span>
                           )}
                         </div>
-                        
+
                         <div className="text-center text-gray-500 text-sm">vs</div>
-                        
+
                         <div className="flex justify-between items-center">
                           <span className="font-medium">{match.player2Name}</span>
                           {match.score && (
@@ -156,7 +165,7 @@ export function TournamentMatches({ tournamentId }: TournamentMatchesProps) {
                       {isOwner && match.status === "scheduled" && (
                         <div className="mt-3 pt-3 border-t">
                           <button
-                            onClick={(e) => {
+                            onClick={e => {
                               e.stopPropagation();
                               handleStartMatch(match._id);
                             }}
