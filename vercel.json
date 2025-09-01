@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "vite.config.ts", "use": "@vercel/static-build", "config": { "distDir": "dist" } },
+    { "src": "convex/**", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/convex/$1.ts" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "env": {
+    "CONVEX_DEPLOYMENT": "production"
+  }
+}
