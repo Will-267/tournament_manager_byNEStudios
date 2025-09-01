@@ -36,32 +36,32 @@ export function MatchView({ matchId, tournamentId, onBack }: MatchViewProps) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-7xl mx-auto p-2 sm:p-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
         <button
           onClick={onBack}
-          className="text-gray-600 hover:text-gray-900 text-2xl"
+          className="text-gray-600 hover:text-gray-900 text-xl sm:text-2xl"
         >
           ←
         </button>
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-gray-900">
+          <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               {match.player1Name} vs {match.player2Name}
             </h1>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(match.status)}`}>
+            <span className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-medium ${getStatusColor(match.status)}`}>
               {match.status}
             </span>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             Round {match.round} • Match {match.matchNumber} • {tournament.name}
           </p>
         </div>
       </div>
 
       {/* Match Info */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="text-lg font-semibold text-blue-600">{match.player1Name}</div>
           <div className="text-sm text-gray-600">Player 1</div>
@@ -99,20 +99,20 @@ export function MatchView({ matchId, tournamentId, onBack }: MatchViewProps) {
           isSpectator={isSpectator}
         />
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border p-8">
+        <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-8">
           <div className="text-center">
-            <div className="text-6xl mb-4">🎮</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <div className="text-4xl sm:text-6xl mb-2 sm:mb-4">🎮</div>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1 sm:mb-2">
               {match.status === "scheduled" ? "Match Not Started" : "Game in Progress"}
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm sm:text-base">
               {match.status === "scheduled" 
                 ? "This match will begin when both players are ready"
                 : `${tournament.gameType} match is currently active`
               }
             </p>
             {match.startTime && (
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">
                 Started: {new Date(match.startTime).toLocaleString()}
               </p>
             )}

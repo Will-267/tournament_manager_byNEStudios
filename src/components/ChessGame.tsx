@@ -302,10 +302,10 @@ export function ChessGame({ matchId, tournamentId, isSpectator = false }: ChessG
     (match.player1Id === loggedInUser._id || match.player2Id === loggedInUser._id);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 p-6">
+    <div className="flex flex-col lg:flex-row gap-4 p-2 sm:gap-6 sm:p-6">
       {/* Chess Board */}
-      <div className="flex-1">
-        <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="flex-1 min-w-0">
+        <div className="bg-white rounded-lg shadow-lg p-2 sm:p-6">
           {/* Game Header */}
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
@@ -333,17 +333,16 @@ export function ChessGame({ matchId, tournamentId, isSpectator = false }: ChessG
           </div>
 
           {/* Chess Board */}
-          <div className="inline-block border-2 border-gray-800">
+          <div className="inline-block border-2 border-gray-800 overflow-x-auto">
             {board.map((row, rowIndex) => (
               <div key={rowIndex} className="flex">
                 {row.map((piece, colIndex) => {
                   const isLight = (rowIndex + colIndex) % 2 === 0;
                   const isSelected = selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
-                  
                   return (
                     <div
                       key={`${rowIndex}-${colIndex}`}
-                      className={`w-16 h-16 flex items-center justify-center text-4xl cursor-pointer select-none ${
+                      className={`w-10 h-10 xs:w-12 xs:h-12 sm:w-16 sm:h-16 flex items-center justify-center text-2xl xs:text-3xl sm:text-4xl cursor-pointer select-none ${
                         isLight ? 'bg-amber-100' : 'bg-amber-800'
                       } ${isSelected ? 'ring-4 ring-blue-500' : ''} hover:opacity-80`}
                       onClick={() => handleSquareClick(rowIndex, colIndex)}
@@ -380,7 +379,7 @@ export function ChessGame({ matchId, tournamentId, isSpectator = false }: ChessG
       </div>
 
       {/* Side Panel */}
-      <div className="w-full lg:w-80 space-y-6">
+  <div className="w-full lg:w-80 space-y-4 sm:space-y-6 mt-4 lg:mt-0">
         {/* Video Stream */}
         <div className="bg-white rounded-lg shadow-lg p-4">
           <h3 className="text-lg font-semibold mb-3">Live Stream</h3>
